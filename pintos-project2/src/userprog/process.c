@@ -115,11 +115,16 @@ process_wait (tid_t child_tid UNUSED)
   {
     return ERROR;
   }
-  child_process_ptr->wait = 1; // set wait for child to true
-  while (!child_process_ptr->exit)
-  {
-    asm volatile ("" : : : "memory");
-  }
+  // child_process_ptr->wait = 1; // set wait for child to true
+  // while (!child_process_ptr->exit)
+  // {
+  //   asm volatile ("" : : : "memory");
+  // }
+
+
+  // Chờ quá trình con thoát sử dụng phương tiện đồng bộ hóa
+  sema_down(&child_process_ptr->exit_sema);
+
   int status = child_process_ptr->status;
   remove_child_process(child_process_ptr);
   return status;

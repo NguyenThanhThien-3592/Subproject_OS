@@ -26,12 +26,12 @@ int syscall_wait(pid_t pid);
 bool syscall_create(const char* file_name, unsigned starting_size);
 bool syscall_remove(const char* file_name);
 int syscall_open(const char * file_name);
-int syscall_filesize(int filedes);
-int syscall_read(int filedes, void *buffer, unsigned length);
-int syscall_write (int filedes, const void * buffer, unsigned byte_size);
-void syscall_seek (int filedes, unsigned new_position);
+int syscall_filesize(int fd);
+int syscall_read(int fd, void *buffer, unsigned size);
+int syscall_write (int fd, const void * buffer, unsigned byte_size);
+void syscall_seek (int fd, unsigned new_position);
 unsigned syscall_tell(int fildes);
-void syscall_close(int filedes);
+void syscall_close(int fd);
 void validate_ptr (const void* vaddr);
 void validate_str (const void* str);
 void validate_buffer (const void* buf, unsigned byte_size);
@@ -136,7 +136,7 @@ syscall_handler (struct intr_frame *f UNUSED)
      // get page pointer
       arg[0] = getpage_ptr((const void *)arg[0]);
       
-      /* syscall_open(int filedes) */
+      /* syscall_open(int fd) */
       f->eax = syscall_open((const char *)arg[0]);  // open this file
       break;
       
@@ -161,7 +161,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       // get page pointer
       arg[1] = getpage_ptr((const void *)arg[1]); 
       
-      /* syscall_write (int filedes, const void * buffer, unsigned bytes)*/
+      /* syscall_write (int fd, const void * buffer, unsigned bytes)*/
       f->eax = syscall_read(arg[0], (void *) arg[1], (unsigned) arg[2]);
       break;
       
@@ -179,28 +179,28 @@ syscall_handler (struct intr_frame *f UNUSED)
       // get page pointer
       arg[1] = getpage_ptr((const void *)arg[1]); 
       
-      /* syscall_write (int filedes, const void * buffer, unsigned bytes)*/
+      /* syscall_write (int fd, const void * buffer, unsigned bytes)*/
       f->eax = syscall_write(arg[0], (const void *) arg[1], (unsigned) arg[2]);
       break;
       
     case SYS_SEEK:
       // fill arg with the amount of arguments needed
       get_args(f, &arg[0], 2);
-      /* syscall_seek(int filedes, unsigned new_position) */
+      /* syscall_seek(int fd, unsigned new_position) */
       syscall_seek(arg[0], (unsigned)arg[1]);
       break;
       
     case SYS_TELL:
       // fill arg with the amount of arguments needed
       get_args(f, &arg[0], 1);
-      /* syscall_tell(int filedes) */
+      /* syscall_tell(int fd) */
       f->eax = syscall_tell(arg[0]);
       break;
     
     case SYS_CLOSE:
       // fill arg with the amount of arguments needed
       get_args (f, &arg[0], 1);
-      /* syscall_close(int filedes) */
+      /* syscall_close(int fd) */
       syscall_close(arg[0]);
       break;
       
@@ -316,17 +316,17 @@ syscall_open(const char *file_name)
     lock_release(&file_system_lock);
     return ERROR;
   }
-  int filedes = add_file(file_ptr);
+  int fd = add_file(file_ptr);
   lock_release(&file_system_lock);
-  return filedes;
+  return fd;
 }
 
 /* syscall_filesize */
 int
-syscall_filesize(int filedes)
+syscall_filesize(int fd)
 {
   lock_acquire(&file_system_lock);
-  struct file *file_ptr = get_file(filedes);
+  struct file *file_ptr = get_file(fd);
   if (!file_ptr)
   {
     lock_release(&file_system_lock);
@@ -341,47 +341,47 @@ syscall_filesize(int filedes)
 #define STD_INPUT 0
 #define STD_OUTPUT 1
 int
-syscall_read(int filedes, void *buffer, unsigned length)
+syscall_read(int fd, void *buffer, unsigned size)
 {
-  if (length <= 0)
+  if (size <= 0)
   {
-    return length;
+    return size;
   }
   
-  if (filedes == STD_INPUT)
+  if (fd == STD_INPUT)
   {
     unsigned i = 0;
     uint8_t *local_buf = (uint8_t *) buffer;
-    for (;i < length; i++)
+    for (;i < size; i++)
     {
       // retrieve pressed key from the input buffer
       local_buf[i] = input_getc(); // from input.h
     }
-    return length;
+    return size;
   }
   
   /* read from file */
   lock_acquire(&file_system_lock);
-  struct file *file_ptr = get_file(filedes);
+  struct file *file_ptr = get_file(fd);
   if (!file_ptr)
   {
     lock_release(&file_system_lock);
     return ERROR;
   }
-  int bytes_read = file_read(file_ptr, buffer, length); // from file.h
+  int bytes_read = file_read(file_ptr, buffer, size); // from file.h
   lock_release (&file_system_lock);
   return bytes_read;
 }
 
 /* syscall_write */
 int 
-syscall_write (int filedes, const void * buffer, unsigned byte_size)
+syscall_write (int fd, const void * buffer, unsigned byte_size)
 {
     if (byte_size <= 0)
     {
       return byte_size;
     }
-    if (filedes == STD_OUTPUT)
+    if (fd == STD_OUTPUT)
     {
       putbuf (buffer, byte_size); // from stdio.h
       return byte_size;
@@ -389,7 +389,7 @@ syscall_write (int filedes, const void * buffer, unsigned byte_size)
     
     // start writing to file
     lock_acquire(&file_system_lock);
-    struct file *file_ptr = get_file(filedes);
+    struct file *file_ptr = get_file(fd);
     if (!file_ptr)
     {
       lock_release(&file_system_lock);
@@ -402,10 +402,10 @@ syscall_write (int filedes, const void * buffer, unsigned byte_size)
 
 /* syscall_seek */
 void
-syscall_seek (int filedes, unsigned new_position)
+syscall_seek (int fd, unsigned new_position)
 {
   lock_acquire(&file_system_lock);
-  struct file *file_ptr = get_file(filedes);
+  struct file *file_ptr = get_file(fd);
   if (!file_ptr)
   {
     lock_release(&file_system_lock);
@@ -417,10 +417,10 @@ syscall_seek (int filedes, unsigned new_position)
 
 /* syscall_tell */
 unsigned
-syscall_tell(int filedes)
+syscall_tell(int fd)
 {
   lock_acquire(&file_system_lock);
-  struct file *file_ptr = get_file(filedes);
+  struct file *file_ptr = get_file(fd);
   if (!file_ptr)
   {
     lock_release(&file_system_lock);
@@ -433,10 +433,10 @@ syscall_tell(int filedes)
 
 /* syscall_close */
 void
-syscall_close(int filedes)
+syscall_close(int fd)
 {
   lock_acquire(&file_system_lock);
-  process_close_file(filedes);
+  process_close_file(fd);
   lock_release(&file_system_lock);
 }
 
@@ -546,7 +546,7 @@ add_file (struct file *file_name)
 
 /* get file that matches file descriptor */
 struct file*
-get_file (int filedes)
+get_file (int fd)
 {
   struct thread *t = thread_current();
   struct list_elem* next;
@@ -556,7 +556,7 @@ get_file (int filedes)
   {
     next = list_next(e);
     struct process_file *process_file_ptr = list_entry(e, struct process_file, elem);
-    if (filedes == process_file_ptr->fd)
+    if (fd == process_file_ptr->fd)
     {
       return process_file_ptr->file;
     }
