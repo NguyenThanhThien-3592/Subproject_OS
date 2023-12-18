@@ -45,5 +45,5 @@ Feel free to explore and modify the code, and happy hacking!
 I would like to express my gratitude to the Pintos development team and the course instructors for their valuable feedback and support throughout this journey.
 
 ## Reference
-[Guide system calls in pintos](https://www.youtube.com/watch?v=sBFJwVeAwEk)
-[Guide memory mapped file in pintos](https://youtu.be/McOBQG0tEWo?si=_vobfajOm1UoypJj)
+- [Guide system calls in pintos](https://www.youtube.com/watch?v=sBFJwVeAwEk)
+- [Guide memory mapped file in pintos](https://youtu.be/McOBQG0tEWo?si=_vobfajOm1UoypJj)
