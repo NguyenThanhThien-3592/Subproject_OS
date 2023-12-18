@@ -1,6 +1,6 @@
 # Pintos Project - My Pintos Journey
 
-[Pintos Logo](https://link.to/your/pintos/logo.png)
+[Pintos Table of Content](https://link.to/your/pintos/logo.png)
 
 ## About Me
 
@@ -43,3 +43,7 @@ Feel free to explore and modify the code, and happy hacking!
 ## Acknowledgments
 
 I would like to express my gratitude to the Pintos development team and the course instructors for their valuable feedback and support throughout this journey.
+
+## Reference
+[Guide system calls in pintos](https://www.youtube.com/watch?v=sBFJwVeAwEk)
+[Guide memory mapped file in pintos](https://youtu.be/McOBQG0tEWo?si=_vobfajOm1UoypJj)
